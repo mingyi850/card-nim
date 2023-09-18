@@ -71,6 +71,9 @@ def checkDone(matrix, stones, currentHand, currentOppHand):
 
 def reduceHand(stones: int, hand: set[int]):
     return {card for card in hand if card <= stones}
+
+def handCondition(turn, myHand, oppHand):
+    return (turn and len(oppHand) - len(myHand) in {2,1}) or (not turn and len(myHand) == len(oppHand))
     
 def getMatrix(maxStones: int, cards: int, currentHand: set[int], currentOppHand: set[int], starting: bool):
     #Initialise matrix
@@ -89,20 +92,16 @@ def getMatrix(maxStones: int, cards: int, currentHand: set[int], currentOppHand:
             for yourHand in yourCurrentHands:
                 handSet = toSet(yourHand)
                 oppHands = yourCurrentHands[yourHand].copy()
-                for oppHand in [hand for hand in oppHands]:
+                for oppHand in [hand for hand in oppHands if handCondition(turn, yourHand, hand)]:
                     oppHandSet = toSet(oppHand)
                     #print("Opp hand: ", oppHand, "My hand: ", yourHand)
                     playerHandSet = set()
                     if turn:
                         #print("My turn, with hands: ", handSet, oppHandSet)
-                        if (len(oppHandSet) - len(handSet) != 1): #If it's my turn, opp should have one more card than me
-                            continue
                         playerHandSet = handSet
                         playerCurrentHand = currentHand
                     else:
                         #print("Opp turn, with hands: ", handSet, oppHandSet)
-                        if (len(oppHandSet) != len(handSet)): #If it's opp turn, opp should have same number of cards as me
-                            continue
                         playerHandSet = oppHandSet
                         playerCurrentHand = currentOppHand
                     for newCard in [x for x in playerCurrentHand if x not in playerHandSet]: #only build cards in hand
@@ -125,14 +124,11 @@ def getMatrix(maxStones: int, cards: int, currentHand: set[int], currentOppHand:
                             if sum(newPlayerHand) + sum(handSet) >= stones + newCard and stones + newCard < maxStones:
                                 addToMatrix(stones + newCard, handSet, newPlayerHand, isWin(handSet, stones + newCard, matrix, newPlayerHand, turn), matrix)
         turn = not turn
-        #pprint.pprint(matrix)
-    #Build matrix off iterations
-    #pprint.pprint(matrix)
     print("Solution: ", matrix[maxStones][hashableSet(currentHand)][hashableSet(currentOppHand)])
     return matrix
 
 startTime = time.time()
-getMatrix(15, 9, set([1,2,3,5,6,8]), set([1,2,5,8,9,3]), True)
+getMatrix(20, 9, set([1,2,3,5,4,6,8]), set([1,2,5,8,7,9,3]), True)
 print("--- Program finished in %s seconds ---" % (time.time() - startTime))
 
 """
