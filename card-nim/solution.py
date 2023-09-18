@@ -53,7 +53,7 @@ def isWin(hand: set[int], stones: int, matrix: dict[dict, dict[str, set[int]]], 
             else:
                 target = isWin(newOtherHand, targetStones, matrix, newHand, not turn)#matrix[stones - card][hashableSet(newOtherHand)][hashableSet(newHand)]
             if not target:
-                winningSet.add(card)
+                return {card} 
             else:
                 continue
     return winningSet
@@ -128,7 +128,7 @@ def getMatrix(maxStones: int, cards: int, currentHand: set[int], currentOppHand:
     return matrix
 
 startTime = time.time()
-getMatrix(20, 9, set([1,2,3,5,4,6,8]), set([1,2,5,8,7,9,3]), True)
+getMatrix(20, 10, set([1,2,3,5,4,6,8]), set([1,2,5,8,7,9,3]), True)
 print("--- Program finished in %s seconds ---" % (time.time() - startTime))
 
 """
