@@ -98,14 +98,14 @@ def getMatrix(maxStones: int, cards: int, currentHand: set[int], currentOppHand:
                         if (len(oppHandSet) - len(handSet) != 1): #If it's my turn, opp should have one more card than me
                             continue
                         playerHandSet = handSet
-                        otherPlayerHandSet = oppHandSet
+                        playerCurrentHand = currentHand
                     else:
                         #print("Opp turn, with hands: ", handSet, oppHandSet)
                         if (len(oppHandSet) != len(handSet)): #If it's opp turn, opp should have same number of cards as me
                             continue
                         playerHandSet = oppHandSet
-                        otherPlayerHandSet = handSet
-                    for newCard in [x for x in range(1, cards + 1) if x not in playerHandSet]:
+                        playerCurrentHand = currentOppHand
+                    for newCard in [x for x in playerCurrentHand if x not in playerHandSet]: #only build cards in hand
                         newPlayerHand = playerHandSet.copy()
                         newPlayerHand.add(newCard)
                         newPlayerHand = reduceHand(stones, newPlayerHand)
@@ -132,7 +132,7 @@ def getMatrix(maxStones: int, cards: int, currentHand: set[int], currentOppHand:
     return matrix
 
 startTime = time.time()
-getMatrix(20, 10, set([1,2,3,5,6,8]), set([1,2,3,4,5,6,7]), True)
+getMatrix(15, 9, set([1,2,3,5,6,8]), set([1,2,5,8,9,3]), True)
 print("--- Program finished in %s seconds ---" % (time.time() - startTime))
 
 """
