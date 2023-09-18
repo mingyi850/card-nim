@@ -1,5 +1,9 @@
+import multiprocessing
 import pprint
 import time
+
+hashUsed = 0
+nonHashUse = 0
 
 def hashableSet(original: set[int]):
     return ','.join([str(i) for i in sorted(list(original))])
@@ -22,10 +26,14 @@ def addToMatrix(stones: int, yours: set[int], opps: set[int], toAdd: set[int], m
 #Check if position is winning for you
 def isWin(hand: set[int], stones: int, matrix: dict[dict, dict[str, set[int]]], oppHand: set[int], turn: bool) -> set[int]:
     #print("Checking win with hand", hand, "stones", stones, "oppHand", oppHand)
+    global hashUsed
+    global nonHashUse
     hashableHand = hashableSet(hand)
     hashableOppHand = hashableSet(oppHand)
     if stones in matrix and hashableHand in matrix[stones] and hashableOppHand in matrix[stones][hashableHand]:
+        hashUsed += 1
         return matrix[stones][hashableHand][hashableOppHand]
+    nonHashUse += 1
     playerHand = set()
     otherPlayerHand = set()
     if turn:
@@ -75,6 +83,26 @@ def reduceHand(stones: int, hand: set[int]):
 def handCondition(turn, myHand, oppHand):
     return (turn and len(oppHand) - len(myHand) in {2,1}) or (not turn and len(myHand) == len(oppHand))
     
+def checkNewCard(playerHandSet: set[int], otherPlayerHandSet: set[int], stones: int, maxStones: int, matrix, turn, newCard):
+    newPlayerHand = playerHandSet.copy()
+    newPlayerHand.add(newCard)
+    newPlayerHand = reduceHand(stones, newPlayerHand)
+    #print("NewPlayerHand: ", newPlayerHand)
+    if turn:
+        if sum(newPlayerHand) + sum(otherPlayerHandSet) >= stones:
+            addToMatrix(stones, newPlayerHand, otherPlayerHandSet, isWin(newPlayerHand, stones, matrix, otherPlayerHandSet, turn), matrix)
+        else:
+            addToMatrix(stones, newPlayerHand, otherPlayerHandSet, set(), matrix)
+        if sum(newPlayerHand) + sum(otherPlayerHandSet) >= stones + newCard and stones + newCard < maxStones:
+            addToMatrix(stones + newCard, newPlayerHand, otherPlayerHandSet, isWin(newPlayerHand, stones + newCard, matrix, otherPlayerHandSet, turn), matrix)
+    else:
+        if sum(newPlayerHand) + sum(otherPlayerHandSet) >= stones:
+            addToMatrix(stones, otherPlayerHandSet, newPlayerHand, isWin(otherPlayerHandSet, stones, matrix, newPlayerHand, turn), matrix)
+        else:
+            addToMatrix(stones, otherPlayerHandSet, newPlayerHand, set(), matrix)
+        if sum(newPlayerHand) + sum(otherPlayerHandSet) >= stones + newCard and stones + newCard < maxStones:
+            addToMatrix(stones + newCard, otherPlayerHandSet, newPlayerHand, isWin(otherPlayerHandSet, stones + newCard, matrix, newPlayerHand, turn), matrix)
+
 def getMatrix(maxStones: int, cards: int, currentHand: set[int], currentOppHand: set[int], starting: bool):
     #Initialise matrix
     matrix = dict()
@@ -96,39 +124,26 @@ def getMatrix(maxStones: int, cards: int, currentHand: set[int], currentOppHand:
                     oppHandSet = toSet(oppHand)
                     #print("Opp hand: ", oppHand, "My hand: ", yourHand)
                     playerHandSet = set()
+                    otherPlayerHandSet = set()
                     if turn:
                         #print("My turn, with hands: ", handSet, oppHandSet)
                         playerHandSet = handSet
                         playerCurrentHand = currentHand
+                        otherPlayerHandSet = oppHandSet
                     else:
                         #print("Opp turn, with hands: ", handSet, oppHandSet)
                         playerHandSet = oppHandSet
                         playerCurrentHand = currentOppHand
+                        otherPlayerHandSet = handSet
                     for newCard in [x for x in playerCurrentHand if x not in playerHandSet]: #only build cards in hand
-                        newPlayerHand = playerHandSet.copy()
-                        newPlayerHand.add(newCard)
-                        newPlayerHand = reduceHand(stones, newPlayerHand)
-                        #print("NewPlayerHand: ", newPlayerHand)
-                        if turn:
-                            if sum(newPlayerHand) + sum(oppHandSet) >= stones:
-                                addToMatrix(stones, newPlayerHand, oppHandSet, isWin(newPlayerHand, stones, matrix, oppHandSet, turn), matrix)
-                            else:
-                                addToMatrix(stones, newPlayerHand, oppHandSet, set(), matrix)
-                            if sum(newPlayerHand) + sum(oppHandSet) >= stones + newCard and stones + newCard < maxStones:
-                                addToMatrix(stones + newCard, newPlayerHand, oppHandSet, isWin(newPlayerHand, stones + newCard, matrix, oppHandSet, turn), matrix)
-                        else:
-                            if sum(newPlayerHand) + sum(handSet) >= stones:
-                                addToMatrix(stones, handSet, newPlayerHand, isWin(handSet, stones, matrix, newPlayerHand, turn), matrix)
-                            else:
-                                addToMatrix(stones, handSet, newPlayerHand, set(), matrix)
-                            if sum(newPlayerHand) + sum(handSet) >= stones + newCard and stones + newCard < maxStones:
-                                addToMatrix(stones + newCard, handSet, newPlayerHand, isWin(handSet, stones + newCard, matrix, newPlayerHand, turn), matrix)
+                        checkNewCard(playerHandSet, otherPlayerHandSet, stones, maxStones, matrix, turn, newCard)
         turn = not turn
     print("Solution: ", matrix[maxStones][hashableSet(currentHand)][hashableSet(currentOppHand)])
     return matrix
 
 startTime = time.time()
 getMatrix(20, 10, set([1,2,3,5,4,6,8]), set([1,2,5,8,7,9,3]), True)
+print("hashUsed", hashUsed, "non-hashUse", nonHashUse)
 print("--- Program finished in %s seconds ---" % (time.time() - startTime))
 
 """
