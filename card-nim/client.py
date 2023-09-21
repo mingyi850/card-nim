@@ -22,9 +22,11 @@ class Client():
         self.num_stones = int(init_info.split(" ")[1])
         self.num_cards = int(init_info.split(" ")[2])
 
-        self.anchor = self.num_stones
-        self.myHand = list(range(1,self.num_cards+1))
-        self.opHand = list(range(1,self.num_cards+1))
+        self.anchor = self.num_stones # used to calculate opponent's move
+        # self.myHand = list(range(1,self.num_cards+1))
+        # self.opHand = list(range(1,self.num_cards+1))
+        self.playerUsedCards = set({})
+        self.oppUsedCards = set({})
         
 
     def getstate(self):
@@ -208,7 +210,8 @@ class MyPlayer(Client):
 
         if state < self.anchor:
             # opponent made a move
-            self.opHand.remove(self.anchor - state)
+            # self.opHand.remove(self.anchor - state)
+            self.oppUsedCards.add(self.anchor - state)
 
         result = self.solve(state, self.myHand, self.opHand)
         if result:
@@ -219,10 +222,6 @@ class MyPlayer(Client):
         self.anchor = state - move
 
         return move
-    
-    def act(self, s, myHand, opHand):
-        return 0
-
 
 
 if __name__ == '__main__':
