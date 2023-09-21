@@ -1,20 +1,27 @@
 # simulate only 2 steps into the future, act based on probability of winning
+from bisect import bisect_left
 import random
 import time
 random.seed(48)
 
-def simulate_three_step(s, myHand, opHand):
+def simulate_three_step(s, myHand, opHand): # choose actions to force opponent to lose
     # tries to incorporate third step
-    if s > len(myHand) + len(opHand) + len(myHand):
+    if s > myHand[-1] + opHand[-1] + myHand[-1]:
         return random.choice(myHand)
     if s in myHand:
         return s
+    if myHand[0] > s:
+        # all cards exceed s
+        return myHand[0] 
     
-    max_prob, max_hand = -1,random.choice(myHand)
-    for i in range(len(myHand)-1,-1,-1):
+    best_index = bisect_left(myHand, s)-1
+    min_lose_cnt, best_hand = 1e3, myHand[best_index]
+    for i in range(best_index,-1,-1):
         hand = myHand[i]
-        if hand > s:
+        if hand > s: # avoid using cards that exceed s
             continue
+        if hand <= 3 and min_lose_cnt < 1e3: # avoid using small cards if possible
+            break
         win_count, lose_count = 0,0
         temp_myHand = myHand.copy()
         temp_myHand.remove(hand)
@@ -33,27 +40,31 @@ def simulate_three_step(s, myHand, opHand):
                 elif hand + op_action + sec_hand == s:
                     win_count += 1
 
-        # if lose_count == 0: # choose actions that will not lead to a loss if possible
-        #     return hand
+        print(hand, win_count, lose_count, "three step")
+        if win_count > 0: # choose actions if it can lead to win when opponent plays optimally
+            return hand
         
-        prob = win_count / (win_count + lose_count) if win_count + lose_count > 0 else 0
-        if prob > max_prob:
-            max_prob, max_hand = prob, hand
-        print(hand, win_count, lose_count, prob)
-    return max_hand
+        if lose_count < min_lose_cnt:
+            best_hand = hand
+            min_lose_cnt = lose_count
+    return best_hand
 
-def simulate_two_step(s, myHand, opHand):
+def simulate_two_step(s, myHand, opHand): # choose action to survive after two steps
     # s is number of stones left
     # myHand is an array of cards in my hand
     # opHand is an array of cards in opponent's hand
     
-    if s > len(myHand) + len(opHand):
+    if s > myHand[-1] + opHand[-1]:
         return random.choice(myHand)
     if s in myHand:
         return s
+    if myHand[0] > s:
+        # all cards exceed s
+        return myHand[0] 
     
-    max_prob, max_hand = -1,random.choice(myHand)
-    for i in range(len(myHand)-1,-1,-1):
+    best_index = bisect_left(myHand, s)-1
+    max_prob, max_hand = -1, myHand[best_index]
+    for i in range(best_index,-1,-1):
         hand = myHand[i]
         if hand > s:
             continue
@@ -64,20 +75,22 @@ def simulate_two_step(s, myHand, opHand):
             elif hand + op_hand == s:
                 lose_count += 1
 
+        # print(hand, win_count, lose_count, "two step")
+
         if lose_count == 0: # choose actions that will not lead to a loss if possible
             return hand
         
         prob = win_count / (win_count + lose_count) if win_count + lose_count > 0 else 0
         if prob > max_prob:
             max_prob, max_hand = prob, hand
-        # print(hand, win_count, lose_count, prob)
+    
     return max_hand
 
-s = 300
-k = 25
+s = 50
+k = 15
 myHand = list(range(1,k+1))
 opHand = list(range(1,k+1))
-my_turn = True
+my_turn = False
 total_time = 0
 
 while s>0:
@@ -102,10 +115,10 @@ while s>0:
         if my_turn:
             print("I won!")
         else:
-            print("You won!")
+            print("You won.")
     elif s<0:
         if my_turn:
-            print("You won!")
+            print("You won.")
         else:
             print("I won!")
 
