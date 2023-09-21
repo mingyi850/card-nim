@@ -1,13 +1,6 @@
 import time
+import math
 
-def getMoveset(stones, maxCards, playerUsedCards, oppUsedCards):
-    allCards = set(range(1, maxCards + 1))
-    playerCards = allCards.difference(playerUsedCards)
-    oppCards = allCards.difference(oppUsedCards)
-    breakingMoves = [stones - x for x in oppUsedCards if (stones - x) < maxCards and (stones - x) not in playerUsedCards]
-    completeDefence = [card for card in playerCards if max(playerUsedCards.union({card})) < (stones - max(oppCards)) / 2]
-    partialDefence = [card for card in playerCards if card < (stones - max(oppCards)) / 2]
-    return breakingMoves, completeDefence, partialDefence
 def hashableSet(original):
     return ','.join([str(i) for i in sorted(list(original))])
 
@@ -28,60 +21,105 @@ def addToMatrix(stones, yours, opps, toAdd, matrix):
     #    matrix[stones][yourHash][oppHash] = dict()
     matrix[stones][yourHash][oppHash] = toAdd
 
+def getMoveset(stones, maxCards, playerUsedCards, oppUsedCards):
+    allCardsOriginal = set(range(1, min(range(stones))))
+    allCards = set(range(1, min(maxCards, stones) + 1))
+    playerCards = allCards.difference(playerUsedCards)
+    oppCards = allCards.difference(oppUsedCards)
+    #print(stones, maxCards, playerUsedCards, oppUsedCards, playerCards, oppCards)
+    breakingMoves = [stones - x for x in oppUsedCards if (stones - x) < max(oppCards) and (stones - x) in playerCards] #moves that minimise 'safe' moves for opponent
+    completeDefence = [card for card in playerCards if max(playerUsedCards.union({card})) < (stones - max(oppCards)) / 2]
+    completeSet = set(completeDefence)
+    partialDefence = [card for card in playerCards if card < (stones - max(oppCards)) and card not in completeSet]
+    
+    return breakingMoves, completeDefence, partialDefence
+
+def allowDepth(maxCards, depth, type): #max allowed depth is always odd (opp turn)
+    branchingFactor = maxCards
+    computationLimit = 7000000
+    allowedDepth = math.log2(computationLimit) // math.log2(branchingFactor)
+    if type == 'breaking':
+        return depth <= 2 * allowedDepth - 1 or depth % 2 == 1
+    else:
+        if allowedDepth % 2 == 0:
+            return depth <= allowedDepth - 1 or depth % 2 == 1
+        else:
+            return depth <= allowedDepth or depth % 2 == 1
+        
 cache = dict()
 cacheHit = 0
-def solve(stones, maxCards, playerUsedCards, oppUsedCards, turn):
+computations = 0
+def solve(stones, maxCards, playerUsedCards, oppUsedCards, turn, depth):
     global cache
     global cacheHit
+    global computations
+    computations += 1
     hashablePlayerUsed = hashableSet(playerUsedCards)
     hashableOppUsed = hashableSet(oppUsedCards)
-    print("Exploring state ", stones, playerUsedCards, oppUsedCards)
-
+    #print("Exploring state ", stones, playerUsedCards, oppUsedCards)
     if stones in cache and hashablePlayerUsed in cache[stones] and hashableOppUsed in cache[stones][hashablePlayerUsed]:
         cacheHit += 1
         return cache[stones][hashablePlayerUsed][hashableOppUsed]
     allCards = set(range(1, maxCards + 1))
     playerCards = allCards.difference(playerUsedCards)
     oppCards = allCards.difference(oppUsedCards)
-    playedMoves = set()
+    #playedMoves = set()
     if stones in playerCards:
         addToMatrix(stones, playerUsedCards, oppUsedCards, set({stones}), cache)
         return set({stones})
-    elif stones < max(playerCards):
+    elif stones < min(playerCards):
         addToMatrix(stones, playerUsedCards, oppUsedCards, set(), cache)
         return set()
-    
+    elif min(oppCards) > stones and min(playerCards) <= stones:
+        return set({min(playerCards)})
+    #print("Checking moveset for", stones, playerCards, oppCards)
     breaking, complete, partial = getMoveset(stones, maxCards, playerUsedCards, oppUsedCards)
-    for move in breaking:
-        oppSolution = solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn)
-        if not(oppSolution):
-            addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
-            return set({move})
-        else:
-            playedMoves.add(move)
-    for move in [move for move in complete if move not in playedMoves]:
-        oppSolution = solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn)
-        if not(oppSolution):
-            addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
-            return(set({move}))
-        else:
-            playedMoves.add(move)
-    for move in [move for move in partial if move not in playedMoves]:
-        oppSolution = solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn)
-        if not(oppSolution):
-            addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
-            return(set({move}))
-        else:
-            playedMoves.add(move)
-    addToMatrix(stones, playerUsedCards, oppUsedCards, set(), cache)
-    return set()
+    #print(breaking, complete, partial)
+    if not breaking and not complete and not partial:
+        return set()
+    allowBreaking = allowDepth(maxCards, depth, 'breaking')
+    allowOther = allowDepth(maxCards, depth, 'other')
+    if True:#allowBreaking:
+        for move in breaking:
+            oppSolution = solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+            if not(oppSolution):
+                addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
+                return set({move})
+        if True: #allowOther:
+            for move in complete:
+                oppSolution = solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                if not(oppSolution):
+                    addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
+                    return(set({move}))
+            for move in partial:
+                oppSolution = solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                if not(oppSolution):
+                    addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
+                    return(set({move}))
+    if True: #allowBreaking and allowOther:
+        addToMatrix(stones, playerUsedCards, oppUsedCards, set(), cache)
+    # Loss mitigation scenarios
+    if depth > 0:
+        return set({})
+    else:
+        if complete:
+            return set({-max(complete)})
+        elif partial:
+            return set({-max(partial)})
+    
     
 
 startTime = time.time()
-stones = 101
-maxCards = 20
-soln = getMoveset(stones, maxCards, set(), set())
+stones = 5
+maxCards = 3
+print("Game with stones, cards:", stones, maxCards)
+soln = getMoveset(stones, maxCards, set({}), set({}))
 print(soln)
-print(solve(stones, maxCards, set(), set(), True))
-print("cacheHit:", cacheHit)
+print("Depth restriction", allowDepth(maxCards, 11, 'branching'))
+print("FIRST MOVE", solve(stones, maxCards, set({}), set({}), True, False))
+#print("SECOND MOVE", solve(14, maxCards, set({}), set({9}), False, False))
+#print(solve(15, maxCards, set({1}), set({3}), False, False))
+#print(solve(12, maxCards, set({3}), set({1,3}), False, False))
+print("cacheHits:", cacheHit)
+print("computations:", computations)
 print("--- Program finished in %s seconds ---" % (time.time() - startTime))

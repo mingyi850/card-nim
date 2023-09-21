@@ -175,7 +175,7 @@ Opp can get it down to 1
 To not break: Have to play card such that max(opp) + card > stones - card i.e (max(opp)) + 2(card) < stones 
 card < (stones - max(opp)) / 2
 I play 4
-46 {27}, {4}
+46 {27},{4}
 Opp cannot get it down to 4. 
 Opp has to play card such that max(me) + 2(max(card_played)) > stones. In this case, he has to play card 1 or 2
 Opp plays 1
