@@ -1,7 +1,7 @@
 import sys
 import socket
 import time
-from solution import solve
+from solution3 import solve
 
 class Client():
     def __init__(self, port=4000):
