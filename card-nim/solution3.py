@@ -37,7 +37,10 @@ def getMoveset(stones, maxCards, playerUsedCards, oppUsedCards):
 def allowDepth(maxCards, depth, type): #max allowed depth is always odd (opp turn)
     branchingFactor = maxCards
     computationLimit = 7000000
-    allowedDepth = math.log2(computationLimit) // math.log2(branchingFactor)
+    divisor = math.log2(branchingFactor)
+    if divisor == 0:
+        divisor = 1
+    allowedDepth = math.log2(computationLimit) // divisor
     if type == 'breaking':
         return depth <= 2 * allowedDepth - 1 or depth % 2 == 1
     else:
@@ -77,16 +80,16 @@ def solve(stones, maxCards, playerUsedCards, oppUsedCards, turn, depth):
     #print(breaking, complete, partial)
     if not breaking and not complete and not partial:
         return set()
-    allowBreaking = allowDepth(maxCards, depth, 'breaking')
-    allowOther = allowDepth(maxCards, depth, 'other')
-    if True:#allowBreaking:
+    allowBreaking = allowDepth(len(breaking) + len(complete) + len(partial), depth, 'breaking')
+    allowOther = allowDepth(len(breaking) + len(complete) + len(partial), depth, 'other')
+    if allowBreaking:
         for move in breaking:
             #print("BREAKING", move)
             oppSolution = solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
             if not(oppSolution):
                 addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
                 return set({move})
-        if True: #allowOther:
+        if allowOther:
             for move in complete:
                 oppSolution = solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
                 if not(oppSolution):
@@ -97,7 +100,7 @@ def solve(stones, maxCards, playerUsedCards, oppUsedCards, turn, depth):
                 if not(oppSolution):
                     addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
                     return(set({move}))
-    if True: #allowBreaking and allowOther:
+    if allowBreaking and allowOther:
         addToMatrix(stones, playerUsedCards, oppUsedCards, set(), cache)
     # Loss mitigation scenarios
     if depth > 0:
