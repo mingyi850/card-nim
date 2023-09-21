@@ -27,7 +27,7 @@ def getMoveset(stones, maxCards, playerUsedCards, oppUsedCards):
     playerCards = allCards.difference(playerUsedCards)
     oppCards = allCards.difference(oppUsedCards)
     #print(stones, maxCards, playerUsedCards, oppUsedCards, playerCards, oppCards)
-    breakingMoves = [stones - x for x in oppUsedCards if (stones - x) < max(oppCards) and (stones - x) in playerCards] #moves that minimise 'safe' moves for opponent
+    breakingMoves = [stones - x for x in oppUsedCards if (stones - x) <= max(oppCards) and (stones - x) in playerCards] #moves that minimise 'safe' moves for opponent
     completeDefence = [card for card in playerCards if max(playerUsedCards.union({card})) < (stones - max(oppCards)) / 2]
     completeSet = set(completeDefence)
     partialDefence = [card for card in playerCards if card < (stones - max(oppCards)) and card not in completeSet]
@@ -81,6 +81,7 @@ def solve(stones, maxCards, playerUsedCards, oppUsedCards, turn, depth):
     allowOther = allowDepth(maxCards, depth, 'other')
     if True:#allowBreaking:
         for move in breaking:
+            #print("BREAKING", move)
             oppSolution = solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
             if not(oppSolution):
                 addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
@@ -110,8 +111,8 @@ def solve(stones, maxCards, playerUsedCards, oppUsedCards, turn, depth):
     
 
 startTime = time.time()
-stones = 5
-maxCards = 3
+stones = 23
+maxCards = 9
 print("Game with stones, cards:", stones, maxCards)
 soln = getMoveset(stones, maxCards, set({}), set({}))
 print(soln)
