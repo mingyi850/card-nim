@@ -4,10 +4,33 @@ import random
 import time
 random.seed(48)
 
-def simulate_three_step(s, myHand, opHand): # choose actions to force opponent to lose
+def heuristic(s, k, myHand, opHand):
+    # try to play a hand so that # of stones remaining is a multiple of (1+k), or so that the opponent cannot play a hand that will lead to a multiple of (1+k)
+    remainder = s % (1+k)
+    if remainder == 0:
+        remainder += (1+k)
+    if remainder in myHand: # make action that will lead to a multiple of (1+k)
+        return remainder
+    
+    temp, index = k, len(opHand)-1
+    while index >= 0:
+        while opHand[index] != temp:
+            temp_remainder = (remainder - temp) % (1+k)
+            # print(temp, temp_remainder)
+            if temp_remainder == 0:
+                temp_remainder += (1+k)
+            if temp_remainder in myHand:
+                return temp_remainder
+            temp -= 1
+        index -= 1
+        temp -= 1
+    return random.choice(myHand)
+
+def simulate_three_step(s, k, myHand, opHand): # choose actions to force opponent to lose
     # tries to incorporate third step
     if s > myHand[-1] + opHand[-1] + myHand[-1]:
-        return random.choice(myHand)
+        # return random.choice(myHand)
+        return heuristic(s, k, myHand, opHand)
     if s in myHand:
         return s
     if myHand[0] > s:
@@ -40,7 +63,7 @@ def simulate_three_step(s, myHand, opHand): # choose actions to force opponent t
                 elif hand + op_action + sec_hand == s:
                     win_count += 1
 
-        print(hand, win_count, lose_count, "three step")
+        # print(hand, win_count, lose_count, "three step")
         if win_count > 0: # choose actions if it can lead to win when opponent plays optimally
             return hand
         
@@ -86,8 +109,8 @@ def simulate_two_step(s, myHand, opHand): # choose action to survive after two s
     
     return max_hand
 
-s = 50
-k = 15
+s = 20
+k = 6
 myHand = list(range(1,k+1))
 opHand = list(range(1,k+1))
 my_turn = False
@@ -96,7 +119,7 @@ total_time = 0
 while s>0:
     if my_turn:
         startTime = time.time()
-        hand = simulate_three_step(s, myHand, opHand)
+        hand = simulate_three_step(s, k, myHand, opHand)
         total_time += (time.time() - startTime)
         myHand.remove(hand)
         s -= hand
