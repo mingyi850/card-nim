@@ -23,8 +23,6 @@ class Client():
         self.num_cards = int(init_info.split(" ")[2])
 
         self.anchor = self.num_stones # used to calculate opponent's move
-        # self.myHand = list(range(1,self.num_cards+1))
-        # self.opHand = list(range(1,self.num_cards+1))
         self.playerUsedCards = set({})
         self.oppUsedCards = set({})
         
@@ -180,18 +178,18 @@ class MyPlayer(Client):
         if allowBreaking:
             for move in breaking:
                 #print("BREAKING", move)
-                oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1, dict())
                 if not(oppSolution):
                     self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
                     return set({move})
             if allowOther:
                 for move in complete:
-                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1, dict())
                     if not(oppSolution):
                         self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
                         return(set({move}))
                 for move in partial:
-                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1, dict())
                     if not(oppSolution):
                         self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
                         return(set({move}))
@@ -210,15 +208,14 @@ class MyPlayer(Client):
 
         if state < self.anchor:
             # opponent made a move
-            # self.opHand.remove(self.anchor - state)
             self.oppUsedCards.add(self.anchor - state)
 
-        result = self.solve(state, self.myHand, self.opHand)
+        result = self.solve(state, self.num_cards, self.playerUsedCards, self.oppUsedCards, True, 0, dict())
         if result:
             move = math.abs(list(result)[0])
         else:
             move = max(self.myHand)
-        self.myHand.remove(move)
+        self.playerUsedCards.add(move)
         self.anchor = state - move
 
         return move
