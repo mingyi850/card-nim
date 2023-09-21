@@ -1,6 +1,7 @@
 import sys
 import socket
 import time
+from solution import solve
 
 class Client():
     def __init__(self, port=4000):
@@ -21,9 +22,11 @@ class Client():
         self.num_stones = int(init_info.split(" ")[1])
         self.num_cards = int(init_info.split(" ")[2])
 
-        self.anchor = self.num_stones
-        self.myHand = list(range(1,self.num_cards+1))
-        self.opHand = list(range(1,self.num_cards+1))
+        self.anchor = self.num_stones # used to calculate opponent's move
+        # self.myHand = list(range(1,self.num_cards+1))
+        # self.opHand = list(range(1,self.num_cards+1))
+        self.playerUsedCards = set({})
+        self.oppUsedCards = set({})
         
 
     def getstate(self):
@@ -108,17 +111,15 @@ class MyPlayer(Client):
 
         if state < self.anchor:
             # opponent made a move
-            self.opHand.remove(self.anchor - state)
+            # self.opHand.remove(self.anchor - state)
+            self.oppUsedCards.add(self.anchor - state)
 
-        move = self.act(state, self.myHand, self.opHand)
-        self.myHand.remove(move)
+        move = solve(state, self.num_cards, self.playerUsedCards, self.oppUsedCards, True, 0)
+        # self.myHand.remove(move)
+        self.playerUsedCards.add(move)
         self.anchor = state - move
 
         return move
-    
-    def act(self, s, myHand, opHand):
-        return 0
-
 
 
 if __name__ == '__main__':
