@@ -1,6 +1,7 @@
 import sys
 import socket
 import time
+import math
 
 class Client():
     def __init__(self, port=4000):
@@ -102,15 +103,118 @@ class MyPlayer(Client):
     Your custom solver!
     '''
     def __init__(self, port=4000):
-        super(IncrementPlayer, self).__init__(port)
+        super(MyPlayer, self).__init__(port)
+    
+    def hashableSet(self, original):
+        return ','.join([str(i) for i in sorted(list(original))])
 
+    def toSet(self, hashed):
+        if not hashed:
+            return set()
+        return set([int(x) for x in hashed.split(',')])
+
+    def addToMatrix(self, stones, yours, opps, toAdd, matrix):
+        yourHash = self.hashableSet(yours)
+        oppHash = self.hashableSet(opps)
+        if stones not in matrix:
+            matrix[stones] = dict()
+        if yourHash not in matrix[stones]:
+            matrix[stones][yourHash] = dict()
+        matrix[stones][yourHash][oppHash] = toAdd
+
+    def getMoveset(self, stones, maxCards, playerUsedCards, oppUsedCards):
+        allCards = set(range(1, min(maxCards, stones) + 1))
+        playerCards = allCards.difference(playerUsedCards)
+        oppCards = allCards.difference(oppUsedCards)
+        #print(stones, maxCards, playerUsedCards, oppUsedCards, playerCards, oppCards)
+        breakingMoves = [stones - x for x in oppUsedCards if (stones - x) <= max(oppCards) and (stones - x) in playerCards] #moves that minimise 'safe' moves for opponent
+        completeDefence = [card for card in playerCards if max(playerUsedCards.union({card})) < (stones - max(oppCards)) / 2]
+        completeSet = set(completeDefence)
+        partialDefence = [card for card in playerCards if card < (stones - max(oppCards)) and card not in completeSet]
+        
+        return breakingMoves, completeDefence, partialDefence
+
+    def allowDepth(self, maxCards, depth, type): #max allowed depth is always odd (opp turn)
+        branchingFactor = maxCards
+        computationLimit = 500000
+        divisor = math.log2(branchingFactor)
+        if divisor == 0:
+            divisor = 1
+        allowedDepth = math.log2(computationLimit) // divisor
+        if type == 'breaking':
+            return depth <= 2 * allowedDepth - 1 or depth % 2 == 1
+        else:
+            if allowedDepth % 2 == 0:
+                return depth <= allowedDepth - 1 or depth % 2 == 1
+            else:
+                return depth <= allowedDepth or depth % 2 == 1
+    
+    def solve(self, stones, maxCards, playerUsedCards, oppUsedCards, turn, depth, cache):
+        hashablePlayerUsed = self.hashableSet(playerUsedCards)
+        hashableOppUsed = self.hashableSet(oppUsedCards)
+        #print("Exploring state ", stones, playerUsedCards, oppUsedCards)
+        if stones in cache and hashablePlayerUsed in cache[stones] and hashableOppUsed in cache[stones][hashablePlayerUsed]:
+            cacheHit += 1
+            return cache[stones][hashablePlayerUsed][hashableOppUsed]
+        allCards = set(range(1, maxCards + 1))
+        playerCards = allCards.difference(playerUsedCards)
+        oppCards = allCards.difference(oppUsedCards)
+        #playedMoves = set()
+        if stones in playerCards:
+            self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({stones}), cache)
+            return set({stones})
+        elif stones < min(playerCards):
+            self.addToMatrix(stones, playerUsedCards, oppUsedCards, set(), cache)
+            return set()
+        elif min(oppCards) > stones and min(playerCards) <= stones:
+            return set({min(playerCards)})
+        #print("Checking moveset for", stones, playerCards, oppCards)
+        breaking, complete, partial = self.getMoveset(stones, maxCards, playerUsedCards, oppUsedCards)
+        #print(breaking, complete, partial)
+        if not breaking and not complete and not partial:
+            return set()
+        allowBreaking = self.allowDepth(len(breaking) + len(complete) + len(partial), depth, 'breaking')
+        allowOther = self.allowDepth(len(breaking) + len(complete) + len(partial), depth, 'other')
+        if allowBreaking:
+            for move in breaking:
+                #print("BREAKING", move)
+                oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                if not(oppSolution):
+                    self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
+                    return set({move})
+            if allowOther:
+                for move in complete:
+                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                    if not(oppSolution):
+                        self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
+                        return(set({move}))
+                for move in partial:
+                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                    if not(oppSolution):
+                        self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
+                        return(set({move}))
+        if allowBreaking and allowOther:
+            self.addToMatrix(stones, playerUsedCards, oppUsedCards, set(), cache)
+        # Loss mitigation scenarios
+        if depth > 0:
+            return set({})
+        else:
+            if complete:
+                return set({-max(complete)})
+            elif partial:
+                return set({-max(partial)})
+            
     def generatemove(self, state):
 
         if state < self.anchor:
             # opponent made a move
             self.opHand.remove(self.anchor - state)
 
-        move = self.act(state, self.myHand, self.opHand)
+        result = self.solve(state, self.myHand, self.opHand)
+        if result:
+            move = math.abs(list(result)[0])
+        else:
+            move = max(self.myHand)
         self.myHand.remove(move)
         self.anchor = state - move
 
@@ -128,6 +232,6 @@ if __name__ == '__main__':
         port = int(sys.argv[1])
 
     # Change IncrementPlayer(port) to MyPlayer(port) to use your custom solver
-    client = IncrementPlayer(port)
+    client = MyPlayer(port)
     client.playgame()
 

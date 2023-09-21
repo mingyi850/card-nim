@@ -36,7 +36,7 @@ def getMoveset(stones, maxCards, playerUsedCards, oppUsedCards):
 
 def allowDepth(maxCards, depth, type): #max allowed depth is always odd (opp turn)
     branchingFactor = maxCards
-    computationLimit = 7000000
+    computationLimit = 500000
     divisor = math.log2(branchingFactor)
     if divisor == 0:
         divisor = 1
@@ -114,8 +114,8 @@ def solve(stones, maxCards, playerUsedCards, oppUsedCards, turn, depth):
     
 
 startTime = time.time()
-stones = 23
-maxCards = 9
+stones = 500
+maxCards = 200
 print("Game with stones, cards:", stones, maxCards)
 soln = getMoveset(stones, maxCards, set({}), set({}))
 print(soln)
