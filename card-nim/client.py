@@ -106,6 +106,7 @@ class MyPlayer(Client):
     '''
     def __init__(self, port=4000):
         super(MyPlayer, self).__init__(port)
+        self.cache = dict()
     
     def hashableSet(self, original):
         return ','.join([str(i) for i in sorted(list(original))])
@@ -180,18 +181,18 @@ class MyPlayer(Client):
         if allowBreaking:
             for move in breaking:
                 #print("BREAKING", move)
-                oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1, cache)
                 if not(oppSolution):
                     self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
                     return set({move})
             if allowOther:
                 for move in complete:
-                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1, cache)
                     if not(oppSolution):
                         self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
                         return(set({move}))
                 for move in partial:
-                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1)
+                    oppSolution = self.solve(stones - move, maxCards, oppUsedCards, playerUsedCards.union({move}), not turn, depth + 1, cache)
                     if not(oppSolution):
                         self.addToMatrix(stones, playerUsedCards, oppUsedCards, set({move}), cache)
                         return(set({move}))
