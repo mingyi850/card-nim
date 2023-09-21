@@ -114,8 +114,8 @@ def solve(stones, maxCards, playerUsedCards, oppUsedCards, turn, depth):
     
 
 startTime = time.time()
-stones = 500
-maxCards = 200
+stones = 100
+maxCards = 20
 print("Game with stones, cards:", stones, maxCards)
 soln = getMoveset(stones, maxCards, set({}), set({}))
 print(soln)

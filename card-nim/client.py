@@ -70,12 +70,13 @@ class Client():
 
         while True:
             state = self.getstate()
+            print("state", state)
 
             if int(state) <= 0:
                 break
 
             move = self.generatemove(state)
-
+            print("created move", move)
             self.sendmove(move)
 
             time.sleep(0.1)
@@ -127,6 +128,7 @@ class MyPlayer(Client):
         allCards = set(range(1, min(maxCards, stones) + 1))
         playerCards = allCards.difference(playerUsedCards)
         oppCards = allCards.difference(oppUsedCards)
+        #print(oppCards)
         #print(stones, maxCards, playerUsedCards, oppUsedCards, playerCards, oppCards)
         breakingMoves = [stones - x for x in oppUsedCards if (stones - x) <= max(oppCards) and (stones - x) in playerCards] #moves that minimise 'safe' moves for opponent
         completeDefence = [card for card in playerCards if max(playerUsedCards.union({card})) < (stones - max(oppCards)) / 2]
@@ -155,7 +157,6 @@ class MyPlayer(Client):
         hashableOppUsed = self.hashableSet(oppUsedCards)
         #print("Exploring state ", stones, playerUsedCards, oppUsedCards)
         if stones in cache and hashablePlayerUsed in cache[stones] and hashableOppUsed in cache[stones][hashablePlayerUsed]:
-            cacheHit += 1
             return cache[stones][hashablePlayerUsed][hashableOppUsed]
         allCards = set(range(1, maxCards + 1))
         playerCards = allCards.difference(playerUsedCards)
@@ -206,14 +207,14 @@ class MyPlayer(Client):
                 return set({-max(partial)})
             
     def generatemove(self, state):
-
+        print(self.playerUsedCards, self.oppUsedCards, self.anchor, state)
         if state < self.anchor:
             # opponent made a move
             self.oppUsedCards.add(self.anchor - state)
 
-        result = self.solve(state, self.num_cards, self.playerUsedCards, self.oppUsedCards, True, 0, dict())
+        result = self.solve(state, self.num_cards, self.playerUsedCards, self.oppUsedCards, True, 0, self.cache)
         if result:
-            move = math.abs(list(result)[0])
+            move = math.fabs(list(result)[0])
         else:
             move = max(self.myHand)
         self.playerUsedCards.add(move)
