@@ -119,3 +119,88 @@ s = 20, n = 6
 (2, 123, 123...) <- Win score = 100
 
 Win score = -Score(s - card, hand - card, opp hand) where card in hand
+
+Air bubbles
+30 10 10
+
+Move set:
+ 1-10 ->  
+ Play 20: 20, 9, 10
+
+ I play, 10, opp plays 10. Game becomes 10, 9 ,9 (I lose)
+ I play 9, opp plays 10, Game becomes 11, 1-8,10, 9
+ I can play 1 to bring game to 10, 2-8, 9
+ Opp can crush me with 9
+I play 8, opp plays 10, Game becomes  
+ 
+2 options: 
+if i can get it to a card that opponent has played
+e.g 1-27, 28-40, 1-40, 50  
+I have 2 options:
+1. Get it to card that opp has played
+2. Get it to card above (max(opp))
+
+Case 1: opp has played 27, I want to get it down to 27 so i play 23
+Now we can simulate the forced moves. Opp plays 4 -> 23 
+27, 1-26, 1-22, 24-26
+23, {27, 4}, 1-3,5-23 1-22,24-26
+4, {27, 4}, 1-3,5-23 1-3
+I play 19 -> 4
+Scenario: If I can break opponent by playing a card < break number: simulate till the end via force moves
+Scenario: If i can break opponent by playing a card > break number: I will win.
+
+Case 2: Say we are unable to break opponent (there is no winning hand to break):
+I need to trim the remainder down to a level above the break point (40 i.e max(opp))
+Available cards: 1-9 
+How do i choose from available cards? Is this a subproblem? (Already kinda easy in this case since there are only 9 subproblems to solve.)
+
+force opponent to break: play 9
+41 {27} {9}
+Opp has 1 moves - get it to 9
+Opp plays 32
+9 {32, 27}, {9}
+Anything i play, opp can counter so i will lose
+
+force opponent to break: play 8
+42 {27} {8}
+Opp has 1 moves - get it to 8 or get it to 41
+Opp plays 33
+8 {33, 27}, {8}
+Anything i play, opp can counter so i will lose
+Again, i am screwed. Opp can play BREAK with (card > myCard)
+Even if i play 4
+45 {27} {4}
+Opp can get it down to 1 
+
+To not break: Have to play card such that max(opp) + card > stones - card i.e (max(opp)) + 2(card) < stones 
+card < (stones - max(opp)) / 2
+I play 4
+46 {27}, {4}
+Opp cannot get it down to 4. 
+Opp has to play card such that max(me) + 2(max(card_played)) > stones. In this case, he has to play card 1 or 2
+Opp plays 1
+45 {1}, {4}
+Here i cannot get it down to 1, (assuming no break) so i can play nothing - everything 1 do will break 4 (stones - 40) / 2 = 2.5 < 4
+But i can play {1,2,3(?)} to start breaking chains.
+
+43 {1} {2, 4}
+Opp can break to 4.
+4 {1}, {2,4}
+I can play 3.
+1 {1}, {2,3,4} -> opp has used 1, i win.
+
+44 {1} {1,2,4}
+Opp can break to 4.
+4 {1}, {1,2,4}
+I can play 3 -> opp has used 1, i win.
+Only break iff player has card in hand for which for each card in opp hand, I have not used reciprocal.
+
+42 {1} {4, 3}
+Opp can break to 4 or 3
+Opp breaks to 4 -> because for all cards in my hand (1,2), Opp has not used reciprocal (2,3) -> OPP WIN
+Opp breaks to 3 -> for card in my hand (1,2), opp has to have both 1,2 to survive. Here, he does not have 1 so he will lose.
+
+Moveset: 
+1. Breaking moves
+2. Defensive moves (Complete defence)
+3. Minimising defence
