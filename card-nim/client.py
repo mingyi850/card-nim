@@ -22,6 +22,7 @@ class Client():
         self.num_stones = int(init_info.split(" ")[1])
         self.num_cards = int(init_info.split(" ")[2])
 
+        self.myHand = list(range(1,self.num_cards+1))
         self.anchor = self.num_stones # used to calculate opponent's move
         self.playerUsedCards = set({})
         self.oppUsedCards = set({})
@@ -214,10 +215,11 @@ class MyPlayer(Client):
 
         result = self.solve(state, self.num_cards, self.playerUsedCards, self.oppUsedCards, True, 0, self.cache)
         if result:
-            move = math.fabs(list(result)[0])
+            move = int(math.fabs(list(result)[0]))
         else:
             move = max(self.myHand)
         self.playerUsedCards.add(move)
+        self.myHand.remove(move)
         self.anchor = state - move
 
         return move
